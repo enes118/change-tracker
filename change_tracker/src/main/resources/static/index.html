@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Gerçek Zamanlı Veritabanı İzleyici</title>
-    <!-- WebSocket ve STOMP kütüphaneleri -->
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
@@ -31,20 +30,16 @@
 </table>
 
 <script>
-    // Java'da açtığımız uç noktaya bağlanıyoruz
     var socket = new SockJS('/cdc-websocket');
     var stompClient = Stomp.over(socket);
 
     stompClient.connect({}, function (frame) {
         console.log('WebSocket Bağlantısı Başarılı: ' + frame);
 
-        // "/topic/changes" kanalını dinliyoruz
         stompClient.subscribe('/topic/changes', function (message) {
-            // Java'dan gelen JSON formatındaki veriyi al
             var event = JSON.parse(message.body);
             var tbody = document.getElementById('events-table');
 
-            // Tablo için yeni bir HTML satırı oluştur
             var newRow = `<tr>
                                 <td><strong>${event.tableName}</strong></td>
                                 <td>${event.operationType}</td>
