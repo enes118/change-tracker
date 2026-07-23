@@ -5,23 +5,28 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.Customizer;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // CDC verilerini sunduğumuz REST API uç noktamızı korumaya alıyoruz
+                        // Swagger UI ve OpenAPI dokümantasyon adreslerine izin veriyoruz
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+                        // CDC endpoint'lerimiz yetkilendirme istemeye devam etsin
                         .requestMatchers("/api/cdc/**").authenticated()
-                        // Geri kalan diğer isteklere (şimdilik) izin veriyoruz
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> {}) // Gelen Token'ı application.properties'deki adrese sorup doğrulayacak
-                );
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
         return http.build();
     }
