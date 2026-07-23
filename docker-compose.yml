@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  postgres-db:
+    image: postgres:15
+    command: ["postgres", "-c", "wal_level=logical"]
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: cdc_test
+    ports:
+      - "5432:5432"
+
+  mysql-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: cdc_test
+    ports:
+      - "3306:3306"

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerçek Zamanlı Veritabanı İzleyici</title>
+    <!-- WebSocket ve STOMP kütüphaneleri -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+<h2>CDC Canlı Değişiklik Tablosu</h2>
+
+<table>
+    <thead>
+    <tr>
+        <th>Tablo Adı</th>
+        <th>İşlem Tipi</th>
+        <th>Veri Detayı</th>
+    </tr>
+    </thead>
+    <tbody id="events-table">
+    <!-- Gelen veriler buraya eklenecek -->
+    </tbody>
+</table>
+
+<script>
+    // Java'da açtığımız uç noktaya bağlanıyoruz
+    var socket = new SockJS('/cdc-websocket');
+    var stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function (frame) {
+        console.log('WebSocket Bağlantısı Başarılı: ' + frame);
+
+        // "/topic/changes" kanalını dinliyoruz
+        stompClient.subscribe('/topic/changes', function (message) {
+            // Java'dan gelen JSON formatındaki veriyi al
+            var event = JSON.parse(message.body);
+            var tbody = document.getElementById('events-table');
+
+            // Tablo için yeni bir HTML satırı oluştur
+            var newRow = `<tr>
+                                <td><strong>${event.tableName}</strong></td>
+                                <td>${event.operationType}</td>
+                                <td>${event.rawData}</td>
+                              </tr>`;
+
+            // Yeni gelen veriyi tablonun en üstüne ekle
+            tbody.innerHTML = newRow + tbody.innerHTML;
+        });
+    });
+</script>
+</body>
+</html>
