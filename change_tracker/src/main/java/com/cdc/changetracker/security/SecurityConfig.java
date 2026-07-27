@@ -16,13 +16,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Swagger UI ve OpenAPI dokümantasyon adreslerine izin veriyoruz
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        // CDC endpoint'lerimiz yetkilendirme istemeye devam etsin
                         .requestMatchers("/api/cdc/**").authenticated()
                         .anyRequest().authenticated()
                 )
