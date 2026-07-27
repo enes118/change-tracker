@@ -23,7 +23,7 @@ public class CdcConfig {
     private String connectionName;
 
     @Enumerated(EnumType.STRING)
-    private DbType dbType = DbType.POSTGRESQL;
+    private DbType dbType;
 
     private String dbHost;
     private Integer dbPort;
@@ -57,24 +57,7 @@ public class CdcConfig {
         }
     }
 
-    public String getSlotName() {
-        Map<String, String> props = getAdditionalProperties();
-        return props.getOrDefault("slotName", "cdc_slot");
-    }
-
-    public String getPluginName() {
-        Map<String, String> props = getAdditionalProperties();
-        return props.getOrDefault("pluginName", "pgoutput");
-    }
-
-    public Long getServerId() {
-        Map<String, String> props = getAdditionalProperties();
-        String serverIdStr = props.get("serverId");
-        if (serverIdStr != null) {
-            try {
-                return Long.parseLong(serverIdStr);
-            } catch (NumberFormatException ignored) {}
-        }
-        return 54001L;
+    public String getProperty(String key, String defaultValue) {
+        return getAdditionalProperties().getOrDefault(key, defaultValue);
     }
 }
