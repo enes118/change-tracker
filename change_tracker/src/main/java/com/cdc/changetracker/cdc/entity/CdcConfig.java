@@ -4,20 +4,26 @@ import com.cdc.changetracker.cdc.enums.DbType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Entity
 @Table(name = "cdc_connection_config")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class CdcConfig {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     private String connectionName;

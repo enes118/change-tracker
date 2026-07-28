@@ -2,6 +2,7 @@ package com.cdc.changetracker.cdc.service;
 
 import com.cdc.changetracker.cdc.entity.CdcConfig;
 import com.cdc.changetracker.cdc.repository.CdcConfigRepository;
+import lombok.RequiredArgsConstructor;
 import org.postgresql.PGConnection;
 import org.postgresql.replication.PGReplicationStream;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -16,14 +17,11 @@ import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
+@RequiredArgsConstructor
 public class DynamicCdcService {
 
     private final CdcConfigRepository configRepository;
     private final List<String> capturedEvents = new CopyOnWriteArrayList<>();
-
-    public DynamicCdcService(CdcConfigRepository configRepository) {
-        this.configRepository = configRepository;
-    }
 
     @EventListener(ApplicationReadyEvent.class)
     public void startDynamicReplication() {

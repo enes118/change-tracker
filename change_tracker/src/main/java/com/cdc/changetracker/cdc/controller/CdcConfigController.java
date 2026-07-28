@@ -1,7 +1,9 @@
 package com.cdc.changetracker.cdc.controller;
 
-import com.cdc.changetracker.cdc.entity.CdcConfig;
+import com.cdc.changetracker.cdc.dto.CdcConfigRequestDto;
+import com.cdc.changetracker.cdc.dto.CdcConfigResponseDto;
 import com.cdc.changetracker.cdc.service.CdcConfigService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,34 +11,29 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/cdc/configs")
+@RequiredArgsConstructor
 public class CdcConfigController {
 
     private final CdcConfigService configService;
 
-    public CdcConfigController(CdcConfigService configService) {
-        this.configService = configService;
-    }
-
     @PostMapping
-    public ResponseEntity<CdcConfig> createConfig(@RequestBody CdcConfig config) {
-        return ResponseEntity.ok(configService.createConfig(config));
+    public ResponseEntity<CdcConfigResponseDto> createConfig(@RequestBody CdcConfigRequestDto requestDto) {
+        return ResponseEntity.ok(configService.createConfig(requestDto));
     }
 
     @GetMapping
-    public ResponseEntity<List<CdcConfig>> getAllConfigs() {
+    public ResponseEntity<List<CdcConfigResponseDto>> getAllConfigs() {
         return ResponseEntity.ok(configService.getAllConfigs());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CdcConfig> getConfigById(@PathVariable Long id) {
-        return configService.getConfigById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CdcConfigResponseDto> getConfigById(@PathVariable Long id) {
+        return ResponseEntity.ok(configService.getConfigById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CdcConfig> updateConfig(@PathVariable Long id, @RequestBody CdcConfig config) {
-        return ResponseEntity.ok(configService.updateConfig(id, config));
+    public ResponseEntity<CdcConfigResponseDto> updateConfig(@PathVariable Long id, @RequestBody CdcConfigRequestDto requestDto) {
+        return ResponseEntity.ok(configService.updateConfig(id, requestDto));
     }
 
     @DeleteMapping("/{id}")
@@ -46,7 +43,7 @@ public class CdcConfigController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<CdcConfig> toggleConfigStatus(@PathVariable Long id, @RequestParam boolean active) {
+    public ResponseEntity<CdcConfigResponseDto> toggleConfigStatus(@PathVariable Long id, @RequestParam boolean active) {
         return ResponseEntity.ok(configService.toggleConfigStatus(id, active));
     }
 }

@@ -1,80 +1,78 @@
 package com.cdc.changetracker.cdc.service;
 
+import com.cdc.changetracker.cdc.dto.CdcConfigRequestDto;
+import com.cdc.changetracker.cdc.dto.CdcConfigResponseDto;
 import com.cdc.changetracker.cdc.entity.CdcConfig;
-import com.cdc.changetracker.cdc.entity.CdcConfigTemplate;
+import com.cdc.changetracker.cdc.mapper.CdcMapper;
 import com.cdc.changetracker.cdc.repository.CdcConfigRepository;
-import com.cdc.changetracker.cdc.repository.CdcConfigTemplateRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CdcConfigService {
 
     private final CdcConfigRepository configRepository;
-    private final CdcConfigTemplateRepository templateRepository;
+    private final CdcMapper cdcMapper;
 
-    public CdcConfigService(CdcConfigRepository configRepository, CdcConfigTemplateRepository templateRepository) {
-        this.configRepository = configRepository;
-        this.templateRepository = templateRepository;
-    }
-
-    public CdcConfig createConfig(CdcConfig config) {
-        if (config.getAdditionalPropertiesJson() == null || config.getAdditionalPropertiesJson().isBlank()) {
-            Optional<CdcConfigTemplate> templateOpt = templateRepository.findByDbTypeAndActiveTrue(config.getDbType());
-            if (templateOpt.isPresent()) {
-                config.setAdditionalPropertiesJson(templateOpt.get().getTemplateJson());
-            } else {
-                config.setAdditionalPropertiesJson("{}");
-            }
-        }
+    public CdcConfigResponseDto createConfig(CdcConfigRequestDto requestDto) {
+        CdcConfig config = cdcMapper.toEntity(requestDto);
         if (config.getActive() == null) {
             config.setActive(true);
         }
-        return configRepository.save(config);
+        CdcConfig saved = configRepository.save(config);
+        return cdcMapper.toDto(saved);
     }
 
-    public List<CdcConfig> getAllConfigs() {
-        return configRepository.findAll();
+    public List<CdcConfigResponseDto> getAllConfigs() {
+        return configRepository.findAll().stream()
+                .map(cdcMapper::toDto)
+                .collect(Collectors.toList());
     }
 
-    public Optional<CdcConfig> getConfigById(Long id) {
-        return configRepository.findById(id);
+    public CdcConfigResponseDto getConfigById(Long id) {
+        return cdcMapper.toDto(findConfigEntityById(id));
     }
 
-    public CdcConfig updateConfig(Long id, CdcConfig updatedConfig) {
-        return configRepository.findById(id)
-                .map(existing -> {
-                    existing.setConnectionName(updatedConfig.getConnectionName());
-                    existing.setDbType(updatedConfig.getDbType());
-                    existing.setDbHost(updatedConfig.getDbHost());
-                    existing.setDbPort(updatedConfig.getDbPort());
-                    existing.setDbName(updatedConfig.getDbName());
-                    existing.setDbUser(updatedConfig.getDbUser());
-                    existing.setDbPassword(updatedConfig.getDbPassword());
-                    existing.setTableIncludeList(updatedConfig.getTableIncludeList());
-                    if (updatedConfig.getAdditionalPropertiesJson() != null) {
-                        existing.setAdditionalPropertiesJson(updatedConfig.getAdditionalPropertiesJson());
-                    }
-                    if (updatedConfig.getActive() != null) {
-                        existing.setActive(updatedConfig.getActive());
-                    }
-                    return configRepository.save(existing);
-                })
-                .orElseThrow(() -> new RuntimeException("CdcConfig bulunamadı! ID: " + id));
+    public CdcConfigResponseDto updateConfig(Long id, CdcConfigRequestDto requestDto) {
+        CdcConfig existing = findConfigEntityById(id);
+        existing.setConnectionName(requestDto.getConnectionName());
+        existing.setDbType(requestDto.getDbType());
+        existing.setDbHost(requestDto.getDbHost());
+        existing.setDbPort(requestDto.getDbPort());
+        existing.setDbName(requestDto.getDbName());
+        existing.setDbUser(requestDto.getDbUser());
+        if (requestDto.getDbPassword() != null && !requestDto.getDbPassword().isBlank()) {
+            existing.setDbPassword(requestDto.getDbPassword());
+        }
+        existing.setTableIncludeList(requestDto.getTableIncludeList());
+        if (requestDto.getAdditionalPropertiesJson() != null) {
+            existing.setAdditionalPropertiesJson(requestDto.getAdditionalPropertiesJson());
+        }
+        if (requestDto.getActive() != null) {
+            existing.setActive(requestDto.getActive());
+        }
+        return cdcMapper.toDto(configRepository.save(existing));
     }
 
     public void deleteConfig(Long id) {
-        configRepository.deleteById(id);
+        CdcConfig existing = findConfigEntityById(id);
+        configRepository.delete(existing);
     }
 
-    public CdcConfig toggleConfigStatus(Long id, boolean active) {
+    public CdcConfigResponseDto toggleConfigStatus(Long id, boolean active) {
+        CdcConfig existing = findConfigEntityById(id);
+        existing.setActive(active);
+        return cdcMapper.toDto(configRepository.save(existing));
+    }
+
+    private CdcConfig findConfigEntityById(Long id) {
         return configRepository.findById(id)
-                .map(existing -> {
-                    existing.setActive(active);
-                    return configRepository.save(existing);
-                })
-                .orElseThrow(() -> new RuntimeException("CdcConfig bulunamadı! ID: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "CdcConfig bulunamadı! ID: " + id));
     }
 }

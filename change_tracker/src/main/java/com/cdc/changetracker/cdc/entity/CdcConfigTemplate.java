@@ -4,22 +4,26 @@ import com.cdc.changetracker.cdc.enums.DbType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Entity
 @Table(name = "cdc_config_template")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class CdcConfigTemplate {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Enumerated(EnumType.STRING)
@@ -31,6 +35,7 @@ public class CdcConfigTemplate {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String templateJson;
 
+    @Builder.Default
     private Boolean active = true;
 
     public CdcConfigTemplate(DbType dbType, String description, String templateJson) {
