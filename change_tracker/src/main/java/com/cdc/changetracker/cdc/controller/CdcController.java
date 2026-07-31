@@ -1,7 +1,9 @@
 package com.cdc.changetracker.cdc.controller;
 
+import com.cdc.changetracker.cdc.dto.CdcChangeEventResponseDto;
 import com.cdc.changetracker.cdc.service.DynamicCdcService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,13 +18,13 @@ public class CdcController {
     private final DynamicCdcService cdcService;
 
     @GetMapping("/start")
-    public String startCdc() {
+    public ResponseEntity<String> startCdc() {
         cdcService.startDynamicReplication();
-        return "CDC Dinlemesi Arka Planda Başlatıldı!";
+        return ResponseEntity.ok("CDC Dinlemesi Arka Planda Başlatıldı!");
     }
 
     @GetMapping("/events")
-    public List<String> getEvents() {
-        return cdcService.getCapturedEvents();
+    public ResponseEntity<List<CdcChangeEventResponseDto>> getEvents() {
+        return ResponseEntity.ok(cdcService.getCapturedEvents());
     }
 }

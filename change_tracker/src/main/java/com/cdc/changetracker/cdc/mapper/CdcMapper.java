@@ -1,9 +1,11 @@
 package com.cdc.changetracker.cdc.mapper;
 
+import com.cdc.changetracker.cdc.dto.CdcChangeEventResponseDto;
 import com.cdc.changetracker.cdc.dto.CdcConfigRequestDto;
 import com.cdc.changetracker.cdc.dto.CdcConfigResponseDto;
 import com.cdc.changetracker.cdc.dto.CdcConfigTemplateRequestDto;
 import com.cdc.changetracker.cdc.dto.CdcConfigTemplateResponseDto;
+import com.cdc.changetracker.cdc.entity.CdcChangeEvent;
 import com.cdc.changetracker.cdc.entity.CdcConfig;
 import com.cdc.changetracker.cdc.entity.CdcConfigTemplate;
 import org.mapstruct.Mapper;
@@ -23,4 +25,6 @@ public interface CdcMapper {
 
     @Mapping(target = "templateMap", expression = "java(entity.getTemplateMap())")
     CdcConfigTemplateResponseDto toDto(CdcConfigTemplate entity);
+
+    CdcChangeEventResponseDto toDto(CdcChangeEvent entity);
 }
