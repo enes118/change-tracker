@@ -21,6 +21,10 @@ public class CdcChangeEvent {
     @EqualsAndHashCode.Include
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cdc_config_id")
+    private CdcConfig cdcConfig;
+
     private String connectionName;
 
     @Enumerated(EnumType.STRING)

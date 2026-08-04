@@ -1,7 +1,6 @@
 package com.cdc.changetracker.cdc.service;
 
 import com.cdc.changetracker.cdc.dto.CdcChangeEventResponseDto;
-import com.cdc.changetracker.cdc.entity.CdcChangeEvent;
 import com.cdc.changetracker.cdc.entity.CdcConfig;
 import com.cdc.changetracker.cdc.enums.DbType;
 import com.cdc.changetracker.cdc.mapper.CdcMapper;
@@ -15,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -24,7 +22,6 @@ public class DynamicCdcService {
 
     private final CdcConfigRepository configRepository;
     private final CdcChangeEventRepository eventRepository;
-    private final CdcListener cdcListenerManager;
     private final List<CdcListener> cdcListeners;
     private final CdcMapper cdcMapper;
 
@@ -46,34 +43,11 @@ public class DynamicCdcService {
 
             try {
                 CdcListener listener = findListenerForDbType(config.getDbType());
-                listener.startListening(config, rawLogData -> saveChangeEvent(config, rawLogData));
+                listener.startListening(config);
             } catch (Exception e) {
                 System.err.println("CDC Replikasyon Başlatma Hatası (" + config.getConnectionName() + "): " + e.getMessage());
             }
         }
-    }
-
-    public void saveChangeEvent(CdcConfig config, String rawLogData) {
-        String eventType = "UNKNOWN";
-        if (rawLogData.contains("INSERT") || rawLogData.contains("WRITE_ROWS")) {
-            eventType = "INSERT";
-        } else if (rawLogData.contains("UPDATE") || rawLogData.contains("UPDATE_ROWS")) {
-            eventType = "UPDATE";
-        } else if (rawLogData.contains("DELETE") || rawLogData.contains("DELETE_ROWS")) {
-            eventType = "DELETE";
-        }
-
-        CdcChangeEvent event = CdcChangeEvent.builder()
-                .connectionName(config.getConnectionName())
-                .dbType(config.getDbType())
-                .dbName(config.getDbName())
-                .tableName(config.getTableIncludeList() != null ? config.getTableIncludeList() : "all")
-                .eventType(eventType)
-                .newDataJson(rawLogData)
-                .createdDate(LocalDateTime.now())
-                .build();
-
-        eventRepository.save(event);
     }
 
     private CdcListener findListenerForDbType(DbType dbType) {

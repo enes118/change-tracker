@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 public class CdcChangeEventResponseDto {
 
     private Long id;
+    private Long cdcConfigId;
     private String connectionName;
     private DbType dbType;
     private String dbName;

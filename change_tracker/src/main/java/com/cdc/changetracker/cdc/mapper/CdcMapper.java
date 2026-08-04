@@ -26,5 +26,6 @@ public interface CdcMapper {
     @Mapping(target = "templateMap", expression = "java(entity.getTemplateMap())")
     CdcConfigTemplateResponseDto toDto(CdcConfigTemplate entity);
 
+    @Mapping(source = "cdcConfig.id", target = "cdcConfigId")
     CdcChangeEventResponseDto toDto(CdcChangeEvent entity);
 }

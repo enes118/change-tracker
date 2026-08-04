@@ -1,7 +1,10 @@
 package com.cdc.changetracker.cdc.service.listener;
 
+import com.cdc.changetracker.cdc.entity.CdcChangeEvent;
 import com.cdc.changetracker.cdc.entity.CdcConfig;
 import com.cdc.changetracker.cdc.enums.DbType;
+import com.cdc.changetracker.cdc.repository.CdcChangeEventRepository;
+import lombok.RequiredArgsConstructor;
 import org.postgresql.PGConnection;
 import org.postgresql.replication.PGReplicationStream;
 import org.springframework.stereotype.Component;
@@ -9,11 +12,14 @@ import org.springframework.stereotype.Component;
 import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.time.LocalDateTime;
 import java.util.Properties;
-import java.util.function.Consumer;
 
 @Component
+@RequiredArgsConstructor
 public class PostgresCdcListener implements CdcListener {
+
+    private final CdcChangeEventRepository eventRepository;
 
     @Override
     public DbType getSupportedDbType() {
@@ -21,7 +27,7 @@ public class PostgresCdcListener implements CdcListener {
     }
 
     @Override
-    public void startListening(CdcConfig config, Consumer<String> eventConsumer) {
+    public void startListening(CdcConfig config) {
         new Thread(() -> {
             try {
                 String url = String.format("jdbc:postgresql://%s:%d/%s",
@@ -71,8 +77,18 @@ public class PostgresCdcListener implements CdcListener {
                             int length = source.length - offset;
 
                             String eventData = new String(source, offset, length);
-                            System.out.println("[POSTGRES CDC EVENT YAKALANDI]: " + eventData);
-                            eventConsumer.accept(eventData);
+
+                            // KONTROL: Sistem içi tarihçe/konfigürasyon tabloları ve boş BEGIN/COMMIT loglarını filtrele
+                            boolean isIgnored = eventData.contains("cdc_change_event")
+                                    || eventData.contains("cdc_connection_config")
+                                    || eventData.contains("cdc_config_template")
+                                    || eventData.startsWith("BEGIN")
+                                    || eventData.startsWith("COMMIT");
+
+                            if (!isIgnored) {
+                                System.out.println("[POSTGRES CDC EVENT YAKALANDI]: " + eventData);
+                                saveChangeEvent(config, eventData);
+                            }
 
                             // LSN Geri Bildirimi (PostgreSQL'in WAL akışını ilerletmesi için ŞARTDIR)
                             stream.setAppliedLSN(stream.getLastReceiveLSN());
@@ -86,5 +102,39 @@ public class PostgresCdcListener implements CdcListener {
                 System.err.println("Postgres CDC Stream Hatası: " + e.getMessage());
             }
         }).start();
+    }
+
+    private void saveChangeEvent(CdcConfig config, String rawLogData) {
+        String eventType = "UNKNOWN";
+        if (rawLogData.contains("INSERT")) {
+            eventType = "INSERT";
+        } else if (rawLogData.contains("UPDATE")) {
+            eventType = "UPDATE";
+        } else if (rawLogData.contains("DELETE")) {
+            eventType = "DELETE";
+        }
+
+        String oldData = null;
+        String newData = null;
+
+        if ("DELETE".equals(eventType)) {
+            oldData = rawLogData;
+        } else {
+            newData = rawLogData;
+        }
+
+        CdcChangeEvent event = CdcChangeEvent.builder()
+                .cdcConfig(config)
+                .connectionName(config.getConnectionName())
+                .dbType(config.getDbType())
+                .dbName(config.getDbName())
+                .tableName(config.getTableIncludeList() != null ? config.getTableIncludeList() : "all")
+                .eventType(eventType)
+                .oldDataJson(oldData)
+                .newDataJson(newData)
+                .createdDate(LocalDateTime.now())
+                .build();
+
+        eventRepository.save(event);
     }
 }
