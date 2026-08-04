@@ -6,4 +6,6 @@ import com.cdc.changetracker.cdc.enums.DbType;
 public interface CdcListener {
     DbType getSupportedDbType();
     void startListening(CdcConfig config);
+    void stopListening(Long configId);
+    boolean isRunning(Long configId);
 }

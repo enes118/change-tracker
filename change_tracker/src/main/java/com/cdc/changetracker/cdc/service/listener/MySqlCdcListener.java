@@ -11,12 +11,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
 public class MySqlCdcListener implements CdcListener {
 
     private final CdcChangeEventRepository eventRepository;
+    private final Map<Long, BinaryLogClient> activeClients = new ConcurrentHashMap<>();
 
     @Override
     public DbType getSupportedDbType() {
@@ -24,7 +27,32 @@ public class MySqlCdcListener implements CdcListener {
     }
 
     @Override
+    public boolean isRunning(Long configId) {
+        BinaryLogClient client = activeClients.get(configId);
+        return client != null && client.isConnected();
+    }
+
+    @Override
+    public void stopListening(Long configId) {
+        BinaryLogClient client = activeClients.remove(configId);
+        if (client != null && client.isConnected()) {
+            try {
+                client.disconnect();
+                System.out.println(">>> MySqlCdcListener: Config ID " + configId + " için binlog bağlantısı durduruldu. <<<");
+            } catch (Exception e) {
+                System.err.println("MySQL CDC Durdurma Hatası: " + e.getMessage());
+            }
+        }
+    }
+
+    @Override
     public void startListening(CdcConfig config) {
+        Long configId = config.getId();
+        if (isRunning(configId)) {
+            System.out.println(">>> MySqlCdcListener: Config ID " + configId + " zaten aktif çalışıyor! <<<");
+            return;
+        }
+
         new Thread(() -> {
             try {
                 long serverId = Long.parseLong(config.getProperty("serverId", "54001"));
@@ -36,6 +64,8 @@ public class MySqlCdcListener implements CdcListener {
                         config.getDbPassword()
                 );
                 client.setServerId(serverId);
+
+                activeClients.put(configId, client);
 
                 System.out.println(">>> MySqlCdcListener: MySQL sunucusuna bağlanılıyor... Host: " + config.getDbHost() + ":" + config.getDbPort() + " <<<");
 
@@ -60,11 +90,13 @@ public class MySqlCdcListener implements CdcListener {
                     }
                 });
 
-                System.out.println(">>> MYSQL CDC DİNLEYİCİSİ AKTİF! Binary Log Olayları Bekleniyor... <<<");
+                System.out.println(">>> MYSQL CDC DİNLEYİCİSİ AKTİF! (Config ID: " + configId + ") Binary Log Olayları Bekleniyor... <<<");
                 client.connect();
 
             } catch (Exception e) {
                 System.err.println("MySQL CDC Stream Hatası: " + e.getMessage());
+            } finally {
+                activeClients.remove(configId);
             }
         }).start();
     }

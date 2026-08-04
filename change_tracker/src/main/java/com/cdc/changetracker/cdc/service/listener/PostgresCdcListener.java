@@ -13,13 +13,16 @@ import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
 public class PostgresCdcListener implements CdcListener {
 
     private final CdcChangeEventRepository eventRepository;
+    private final Map<Long, Boolean> activeListeners = new ConcurrentHashMap<>();
 
     @Override
     public DbType getSupportedDbType() {
@@ -27,7 +30,28 @@ public class PostgresCdcListener implements CdcListener {
     }
 
     @Override
+    public boolean isRunning(Long configId) {
+        return activeListeners.getOrDefault(configId, false);
+    }
+
+    @Override
+    public void stopListening(Long configId) {
+        if (activeListeners.containsKey(configId)) {
+            activeListeners.put(configId, false);
+            System.out.println(">>> PostgresCdcListener: Config ID " + configId + " için dinleyici durdurma sinyali gönderildi. <<<");
+        }
+    }
+
+    @Override
     public void startListening(CdcConfig config) {
+        Long configId = config.getId();
+        if (isRunning(configId)) {
+            System.out.println(">>> PostgresCdcListener: Config ID " + configId + " zaten aktif çalışıyor! <<<");
+            return;
+        }
+
+        activeListeners.put(configId, true);
+
         new Thread(() -> {
             try {
                 String url = String.format("jdbc:postgresql://%s:%d/%s",
@@ -39,7 +63,7 @@ public class PostgresCdcListener implements CdcListener {
                 props.setProperty("assumeMinServerVersion", "9.4");
                 props.setProperty("replication", "database");
 
-                System.out.println(">>> PostgresCdcListener: PostgreSQL sunucusuna bağlanılıyor... <<<");
+                System.out.println(">>> PostgresCdcListener: PostgreSQL sunucusuna bağlanılıyor... Config ID: " + configId + " <<<");
 
                 try (Connection conn = DriverManager.getConnection(url, props)) {
                     PGConnection pgConnection = conn.unwrap(PGConnection.class);
@@ -67,9 +91,9 @@ public class PostgresCdcListener implements CdcListener {
                             .withSlotOption("skip-empty-xacts", "true")
                             .start();
 
-                    System.out.println(">>> POSTGRESQL CDC DİNLEYİCİSİ AKTİF! Olaylar Bekleniyor... <<<");
+                    System.out.println(">>> POSTGRESQL CDC DİNLEYİCİSİ AKTİF! (Config ID: " + configId + ") Olaylar Bekleniyor... <<<");
 
-                    while (true) {
+                    while (Boolean.TRUE.equals(activeListeners.get(configId))) {
                         ByteBuffer msg = stream.readPending();
                         if (msg != null) {
                             int offset = msg.arrayOffset();
@@ -90,16 +114,19 @@ public class PostgresCdcListener implements CdcListener {
                                 saveChangeEvent(config, eventData);
                             }
 
-                            // LSN Geri Bildirimi (PostgreSQL'in WAL akışını ilerletmesi için ŞARTDIR)
+                            // LSN Geri Bildirimi
                             stream.setAppliedLSN(stream.getLastReceiveLSN());
                             stream.setFlushedLSN(stream.getLastReceiveLSN());
                         } else {
                             Thread.sleep(50);
                         }
                     }
+                    System.out.println(">>> POSTGRESQL CDC DİNLEYİCİSİ KAPATILDI! (Config ID: " + configId + ") <<<");
                 }
             } catch (Exception e) {
                 System.err.println("Postgres CDC Stream Hatası: " + e.getMessage());
+            } finally {
+                activeListeners.remove(configId);
             }
         }).start();
     }
