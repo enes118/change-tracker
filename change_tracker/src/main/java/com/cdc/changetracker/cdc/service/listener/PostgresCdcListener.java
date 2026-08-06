@@ -70,7 +70,6 @@ public class PostgresCdcListener implements CdcListener {
 
                     String slotName = config.getProperty("slotName", "cdc_slot");
 
-                    // Slot yoksa otomatik oluştur
                     try {
                         pgConnection.getReplicationAPI()
                                 .createReplicationSlot()
@@ -80,7 +79,6 @@ public class PostgresCdcListener implements CdcListener {
                                 .make();
                         System.out.println(">>> Replikasyon slotu otomatik oluşturuldu: " + slotName + " <<<");
                     } catch (Exception ignored) {
-                        // Slot zaten varsa hata verir, yutulur
                     }
 
                     PGReplicationStream stream = pgConnection.getReplicationAPI()
@@ -102,7 +100,6 @@ public class PostgresCdcListener implements CdcListener {
 
                             String eventData = new String(source, offset, length);
 
-                            // KONTROL: Sistem içi tarihçe/konfigürasyon tabloları ve boş BEGIN/COMMIT loglarını filtrele
                             boolean isIgnored = eventData.contains("cdc_change_event")
                                     || eventData.contains("cdc_connection_config")
                                     || eventData.contains("cdc_config_template")
@@ -114,7 +111,6 @@ public class PostgresCdcListener implements CdcListener {
                                 saveChangeEvent(config, eventData);
                             }
 
-                            // LSN Geri Bildirimi
                             stream.setAppliedLSN(stream.getLastReceiveLSN());
                             stream.setFlushedLSN(stream.getLastReceiveLSN());
                         } else {
@@ -146,6 +142,11 @@ public class PostgresCdcListener implements CdcListener {
 
         if ("DELETE".equals(eventType)) {
             oldData = rawLogData;
+        } else if ("INSERT".equals(eventType)) {
+            newData = rawLogData;
+        } else if ("UPDATE".equals(eventType)) {
+            oldData = "[OLD STATE] " + rawLogData;
+            newData = "[NEW STATE] " + rawLogData;
         } else {
             newData = rawLogData;
         }

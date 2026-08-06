@@ -38,7 +38,7 @@ public class DynamicCdcService {
         System.out.println(">>> " + activeConfigs.size() + " adet aktif veritabanı konfigürasyonu için CDC dinleyicileri başlatılıyor... <<<");
 
         for (CdcConfig config : activeConfigs) {
-            startListenerForConfig(config);
+            startListener(config);
         }
     }
 
@@ -46,20 +46,12 @@ public class DynamicCdcService {
         CdcConfig config = configRepository.findById(configId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Konfigürasyon bulunamadı ID: " + configId));
 
-        startListenerForConfig(config);
+        startListener(config);
     }
 
-    public void stopListener(Long configId) {
-        CdcConfig config = configRepository.findById(configId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Konfigürasyon bulunamadı ID: " + configId));
-
-        CdcListener listener = findListenerForDbType(config.getDbType());
-        listener.stopListening(configId);
-    }
-
-    private void startListenerForConfig(CdcConfig config) {
-        if (config.getDbType() == null) {
-            System.err.println(">>> UYARI: Konfigürasyonun (ID: " + config.getId() + ") dbType alanı NULL! Pas geçiliyor... <<<");
+    public void startListener(CdcConfig config) {
+        if (config == null || config.getDbType() == null) {
+            System.err.println(">>> UYARI: Konfigürasyon veya dbType alanı NULL! Pas geçiliyor... <<<");
             return;
         }
 
@@ -68,6 +60,15 @@ public class DynamicCdcService {
             listener.startListening(config);
         } catch (Exception e) {
             System.err.println("CDC Replikasyon Başlatma Hatası (" + config.getConnectionName() + "): " + e.getMessage());
+        }
+    }
+
+    public void stopListener(Long configId) {
+        if (configId == null) {
+            return;
+        }
+        for (CdcListener listener : cdcListeners) {
+            listener.stopListening(configId);
         }
     }
 

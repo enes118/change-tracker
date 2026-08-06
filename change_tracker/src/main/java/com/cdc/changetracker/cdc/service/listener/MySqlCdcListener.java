@@ -116,6 +116,11 @@ public class MySqlCdcListener implements CdcListener {
 
         if ("DELETE".equals(eventType)) {
             oldData = rawLogData;
+        } else if ("INSERT".equals(eventType)) {
+            newData = rawLogData;
+        } else if ("UPDATE".equals(eventType)) {
+            oldData = "[OLD STATE] " + rawLogData;
+            newData = "[NEW STATE] " + rawLogData;
         } else {
             newData = rawLogData;
         }

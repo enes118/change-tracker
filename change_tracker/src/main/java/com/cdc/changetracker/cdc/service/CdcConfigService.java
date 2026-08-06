@@ -19,6 +19,7 @@ public class CdcConfigService {
 
     private final CdcConfigRepository configRepository;
     private final CdcMapper cdcMapper;
+    private final DynamicCdcService dynamicCdcService;
 
     public CdcConfigResponseDto createConfig(CdcConfigRequestDto requestDto) {
         CdcConfig config = cdcMapper.toEntity(requestDto);
@@ -26,6 +27,15 @@ public class CdcConfigService {
             config.setActive(true);
         }
         CdcConfig saved = configRepository.save(config);
+
+        if (Boolean.TRUE.equals(saved.getActive())) {
+            try {
+                dynamicCdcService.startListener(saved);
+            } catch (Exception e) {
+                System.err.println("Otomatik dinleyici başlatma uyarısı: " + e.getMessage());
+            }
+        }
+
         return cdcMapper.toDto(saved);
     }
 
@@ -57,18 +67,49 @@ public class CdcConfigService {
         if (requestDto.getActive() != null) {
             existing.setActive(requestDto.getActive());
         }
-        return cdcMapper.toDto(configRepository.save(existing));
+
+        CdcConfig updated = configRepository.save(existing);
+
+        try {
+            dynamicCdcService.stopListener(id);
+            if (Boolean.TRUE.equals(updated.getActive())) {
+                dynamicCdcService.startListener(updated);
+            }
+        } catch (Exception e) {
+            System.err.println("Otomatik dinleyici güncelleme uyarısı: " + e.getMessage());
+        }
+
+        return cdcMapper.toDto(updated);
     }
 
     public void deleteConfig(Long id) {
         CdcConfig existing = findConfigEntityById(id);
+
+        try {
+            dynamicCdcService.stopListener(id);
+        } catch (Exception e) {
+            System.err.println("Otomatik dinleyici durdurma uyarısı: " + e.getMessage());
+        }
+
         configRepository.delete(existing);
     }
 
     public CdcConfigResponseDto toggleConfigStatus(Long id, boolean active) {
         CdcConfig existing = findConfigEntityById(id);
         existing.setActive(active);
-        return cdcMapper.toDto(configRepository.save(existing));
+        CdcConfig updated = configRepository.save(existing);
+
+        try {
+            if (active) {
+                dynamicCdcService.startListener(updated);
+            } else {
+                dynamicCdcService.stopListener(id);
+            }
+        } catch (Exception e) {
+            System.err.println("Otomatik dinleyici durum değiştirme uyarısı: " + e.getMessage());
+        }
+
+        return cdcMapper.toDto(updated);
     }
 
     private CdcConfig findConfigEntityById(Long id) {
