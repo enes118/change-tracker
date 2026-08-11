@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Database, Check, Server, Shield, Layers, Clock } from 'lucide-react';
+import { X, Database, Check } from 'lucide-react';
 
 export default function ConfigModal({ isOpen, onClose, onSave, initialData }) {
   const [formData, setFormData] = useState({
     id: null,
+    connectionName: '',
     dbType: 'POSTGRESQL',
     dbHost: 'localhost',
     dbPort: 5432,
     dbName: '',
     dbUser: '',
     dbPassword: '',
-    tables: '',
-    pollIntervalMs: 1000,
+    tableIncludeList: '',
+    additionalPropertiesJson: '{}',
     active: true
   });
 
@@ -19,27 +20,29 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }) {
     if (initialData) {
       setFormData({
         id: initialData.id || null,
+        connectionName: initialData.connectionName || '',
         dbType: initialData.dbType || 'POSTGRESQL',
         dbHost: initialData.dbHost || 'localhost',
         dbPort: initialData.dbPort || (initialData.dbType === 'MYSQL' ? 3306 : 5432),
         dbName: initialData.dbName || '',
         dbUser: initialData.dbUser || '',
         dbPassword: initialData.dbPassword || '',
-        tables: initialData.tables || '',
-        pollIntervalMs: initialData.pollIntervalMs || 1000,
+        tableIncludeList: initialData.tableIncludeList || initialData.tables || '',
+        additionalPropertiesJson: initialData.additionalPropertiesJson || (initialData.additionalProperties ? JSON.stringify(initialData.additionalProperties) : '{}'),
         active: initialData.active !== undefined ? initialData.active : true
       });
     } else {
       setFormData({
         id: null,
+        connectionName: '',
         dbType: 'POSTGRESQL',
         dbHost: 'localhost',
         dbPort: 5432,
         dbName: '',
         dbUser: '',
         dbPassword: '',
-        tables: '',
-        pollIntervalMs: 1000,
+        tableIncludeList: '',
+        additionalPropertiesJson: '{}',
         active: true
       });
     }
@@ -69,16 +72,27 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.dbName || !formData.dbUser) {
-      alert('Lütfen Veritabanı Adı ve Kullanıcı Adı alanlarını doldurunuz.');
+    if (!formData.connectionName || !formData.dbName || !formData.dbUser) {
+      alert('Lütfen Bağlantı Adı, Veritabanı Adı ve Kullanıcı Adı alanlarını doldurunuz.');
       return;
     }
+
+    // Validate JSON format for additionalPropertiesJson if provided
+    if (formData.additionalPropertiesJson && formData.additionalPropertiesJson.trim() !== '') {
+      try {
+        JSON.parse(formData.additionalPropertiesJson);
+      } catch (err) {
+        alert('Ekstra Parametreler (JSON) alanı geçerli bir JSON formatında olmalıdır. Örn: {"sslMode": "disable"}');
+        return;
+      }
+    }
+
     onSave(formData);
   };
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container">
+      <div className="modal-container" style={{ maxWidth: '650px' }}>
         <div className="modal-header">
           <div className="modal-title-group">
             <div className="modal-icon">
@@ -97,6 +111,20 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }) {
         </div>
 
         <form onSubmit={handleSubmit} className="modal-body">
+          {/* Connection Name */}
+          <div className="form-group" style={{ marginBottom: '1rem' }}>
+            <label className="form-label">Bağlantı Adı (Connection Name)</label>
+            <input
+              type="text"
+              name="connectionName"
+              value={formData.connectionName}
+              onChange={handleChange}
+              placeholder="ör: Main-Postgres-Prod"
+              className="form-input"
+              required
+            />
+          </div>
+
           <div className="form-grid">
             {/* DB Type */}
             <div className="form-group">
@@ -147,7 +175,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }) {
                 name="dbName"
                 value={formData.dbName}
                 onChange={handleChange}
-                placeholder="ör: inventory_db"
+                placeholder="ör: cdc_test"
                 className="form-input"
                 required
               />
@@ -161,7 +189,7 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }) {
                 name="dbUser"
                 value={formData.dbUser}
                 onChange={handleChange}
-                placeholder="ör: postgres veya root"
+                placeholder="ör: root veya postgres"
                 className="form-input"
                 required
               />
@@ -181,49 +209,48 @@ export default function ConfigModal({ isOpen, onClose, onSave, initialData }) {
             </div>
           </div>
 
-          {/* Target Tables */}
+          {/* Table Include List */}
           <div className="form-group" style={{ marginTop: '1rem' }}>
-            <label className="form-label">Dinlenecek Tablolar (Virgülle Ayrılmış)</label>
+            <label className="form-label">Dinlenecek Tablolar (tableIncludeList)</label>
             <input
               type="text"
-              name="tables"
-              value={formData.tables}
+              name="tableIncludeList"
+              value={formData.tableIncludeList}
               onChange={handleChange}
-              placeholder="ör: users, orders, products (Boş ise tüm tablolar)"
+              placeholder="ör: employees, orders (Boş ise tüm tablolar)"
               className="form-input"
             />
           </div>
 
-          <div className="form-grid" style={{ marginTop: '1rem' }}>
-            {/* Poll Interval */}
-            <div className="form-group">
-              <label className="form-label">Sorgu Aralığı (ms)</label>
-              <input
-                type="number"
-                name="pollIntervalMs"
-                value={formData.pollIntervalMs}
-                onChange={handleChange}
-                step="500"
-                className="form-input"
-              />
-            </div>
+          {/* Additional Parameters JSON */}
+          <div className="form-group" style={{ marginTop: '1rem' }}>
+            <label className="form-label">Ekstra Parametreler (additionalPropertiesJson)</label>
+            <textarea
+              name="additionalPropertiesJson"
+              value={formData.additionalPropertiesJson}
+              onChange={handleChange}
+              rows={3}
+              placeholder='{"sslMode": "disable", "connectTimeout": "5000"}'
+              className="form-input"
+              style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+            />
+          </div>
 
-            {/* Active Toggle */}
-            <div className="form-group" style={{ justifyContent: 'center' }}>
-              <label className="form-label">CDC Dinleme Durumu</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.35rem' }}>
-                <input
-                  type="checkbox"
-                  id="active"
-                  name="active"
-                  checked={formData.active}
-                  onChange={handleChange}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                <label htmlFor="active" style={{ fontSize: '0.9rem', fontWeight: 600, color: formData.active ? '#10b981' : '#64748b', cursor: 'pointer' }}>
-                  {formData.active ? 'Aktif (Dinleme Açık)' : 'Pasif (Kapalı)'}
-                </label>
-              </div>
+          {/* Active Toggle */}
+          <div className="form-group" style={{ marginTop: '1rem' }}>
+            <label className="form-label">CDC Dinleme Durumu</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.35rem' }}>
+              <input
+                type="checkbox"
+                id="active"
+                name="active"
+                checked={formData.active}
+                onChange={handleChange}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <label htmlFor="active" style={{ fontSize: '0.9rem', fontWeight: 600, color: formData.active ? '#10b981' : '#64748b', cursor: 'pointer' }}>
+                {formData.active ? 'Aktif (Dinleme Açık)' : 'Pasif (Kapalı)'}
+              </label>
             </div>
           </div>
 

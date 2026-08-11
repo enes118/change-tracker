@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from './services/api';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
+import ConfigsPage from './pages/ConfigsPage';
+import EventsPage from './pages/EventsPage';
+import ConfigModal from './components/ConfigModal';
 import { LogIn, ShieldAlert } from 'lucide-react';
 import './styles/cms-theme.css';
 
@@ -13,15 +17,54 @@ export default function App({ keycloak, initialAuthenticated }) {
     }
     return 'Admin User';
   });
+
+  useEffect(() => {
+    if (keycloak && keycloak.tokenParsed) {
+      const name = keycloak.tokenParsed.preferred_username || keycloak.tokenParsed.name || keycloak.tokenParsed.sub || 'Admin User';
+      setUsername(name);
+    }
+  }, [keycloak]);
+
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [configs, setConfigs] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedConfig, setSelectedConfig] = useState(null);
+
+  // Fetch CDC Database Configs
+  const fetchConfigs = async () => {
+    try {
+      const response = await api.get('/api/cdc/configs');
+      setConfigs(response.data || []);
+    } catch (err) {
+      console.warn('Konfigürasyon yükleme uyarısı:', err);
+    }
+  };
+
+  // Fetch CDC Change Events
+  const fetchEvents = async () => {
+    try {
+      const response = await api.get('/api/cdc/events');
+      setEvents(response.data || []);
+    } catch (err) {
+      console.warn('Etkinlik yükleme uyarısı:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (authenticated) {
+      if (activeTab === 'configs') fetchConfigs();
+      if (activeTab === 'events') fetchEvents();
+    }
+  }, [authenticated, activeTab]);
 
   const handleLogin = (e) => {
     if (e) e.preventDefault();
-    console.log('🔑 Keycloak Şifre Ekranına Yönlendiriliyor (Forced Login Form)...');
+    console.log('🔑 Keycloak Şifre Ekranına Yönlendiriliyor...');
     sessionStorage.removeItem('cms_explicit_logout');
     if (keycloak) {
       keycloak.login({
-        prompt: 'login' // Standard OIDC: Force Username/Password input form page every single time
+        prompt: 'login'
       });
     }
   };
@@ -34,6 +77,53 @@ export default function App({ keycloak, initialAuthenticated }) {
       keycloak.logout();
     } else {
       window.location.reload();
+    }
+  };
+
+  // CRUD Handlers for Database Configs
+  const handleOpenCreateModal = () => {
+    setSelectedConfig(null);
+    setModalOpen(true);
+  };
+
+  const handleOpenEditModal = (config) => {
+    setSelectedConfig(config);
+    setModalOpen(true);
+  };
+
+  const handleSaveConfig = async (formData) => {
+    try {
+      if (formData.id) {
+        await api.put(`/api/cdc/configs/${formData.id}`, formData);
+      } else {
+        await api.post('/api/cdc/configs', formData);
+      }
+      setModalOpen(false);
+      fetchConfigs();
+    } catch (err) {
+      console.error('Kaydetme hatası:', err);
+      alert('Hata: Konfigürasyon kaydedilemedi. Backend servisini kontrol ediniz.');
+    }
+  };
+
+  const handleDeleteConfig = async (id) => {
+    if (!window.confirm(`Config ID #${id} konfigürasyonunu silmek istediğinizden emin misiniz?`)) return;
+    try {
+      await api.delete(`/api/cdc/configs/${id}`);
+      fetchConfigs();
+    } catch (err) {
+      console.error('Silme hatası:', err);
+      alert('Hata: Konfigürasyon silinemedi.');
+    }
+  };
+
+  const handleToggleActive = async (id, active) => {
+    try {
+      await api.patch(`/api/cdc/configs/${id}/status?active=${active}`);
+      fetchConfigs();
+    } catch (err) {
+      console.error('Durum hatası:', err);
+      alert('Hata: Durum değiştirilemedi.');
     }
   };
 
@@ -63,8 +153,8 @@ export default function App({ keycloak, initialAuthenticated }) {
 
   const getPageTitle = () => {
     if (activeTab === 'dashboard') return '📊 Anasayfa';
-    if (activeTab === 'configs') return '⚙️ Veritabanı Ayarları';
-    if (activeTab === 'events') return '📜 CDC Değişiklik Günlüğü';
+    if (activeTab === 'configs') return '⚙️ Veritabanı CDC Konfigürasyonları';
+    if (activeTab === 'events') return '📜 CDC Değişiklik Günlüğü (Change Events)';
     return 'CMS Panel';
   };
 
@@ -86,20 +176,31 @@ export default function App({ keycloak, initialAuthenticated }) {
           {activeTab === 'dashboard' && <HomePage />}
 
           {activeTab === 'configs' && (
-            <div className="cms-card">
-              <h2 className="cms-card-title">⚙️ Veritabanı Ayarları</h2>
-              <p className="cms-card-subtitle">Bu modül sıradaki komutunuzla eklenecektir.</p>
-            </div>
+            <ConfigsPage
+              configs={configs}
+              onOpenCreateModal={handleOpenCreateModal}
+              onOpenEditModal={handleOpenEditModal}
+              onToggleActive={handleToggleActive}
+              onDeleteConfig={handleDeleteConfig}
+            />
           )}
 
           {activeTab === 'events' && (
-            <div className="cms-card">
-              <h2 className="cms-card-title">📜 CDC Değişiklik Günlüğü</h2>
-              <p className="cms-card-subtitle">Bu modül sıradaki komutunuzla eklenecektir.</p>
-            </div>
+            <EventsPage
+              events={events}
+              onRefresh={fetchEvents}
+            />
           )}
         </div>
       </main>
+
+      {/* Modal Dialog for Create / Update */}
+      <ConfigModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleSaveConfig}
+        initialData={selectedConfig}
+      />
     </div>
   );
 }

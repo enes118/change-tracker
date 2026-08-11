@@ -2,7 +2,7 @@ import axios from 'axios';
 import keycloak from './keycloak';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080'
+  baseURL: '' // Use relative URL so Vite proxy forwards /api to http://localhost:8080 cleanly without CORS errors
 });
 
 // Request Interceptor: Attach Keycloak Bearer Token if available

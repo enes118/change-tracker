@@ -438,6 +438,39 @@ body {
   color: #ef4444;
 }
 
+/* Event Badges */
+.event-badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+.event-badge.insert {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.event-badge.update {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.event-badge.delete {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.event-badge.default {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
 /* Modal Form Overlay */
 .modal-overlay {
   position: fixed;

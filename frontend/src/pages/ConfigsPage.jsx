@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Edit2, Trash2, Database, Power, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Database, CheckCircle, XCircle } from 'lucide-react';
 
 export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModal, onToggleActive, onDeleteConfig }) {
   return (
@@ -35,12 +35,13 @@ export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModa
             <thead>
               <tr>
                 <th>ID</th>
+                <th>Bağlantı Adı</th>
                 <th>Veritabanı Tipi</th>
                 <th>Sunucu Adresi</th>
                 <th>Veritabanı Adı</th>
                 <th>Kullanıcı</th>
                 <th>İzlenen Tablolar</th>
-                <th>Aralık (ms)</th>
+                <th>Ekstra Parametreler (JSON)</th>
                 <th>Durum</th>
                 <th style={{ textAlign: 'right' }}>İşlemler</th>
               </tr>
@@ -49,6 +50,7 @@ export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModa
               {configs.map((config) => (
                 <tr key={config.id}>
                   <td><strong>#{config.id}</strong></td>
+                  <td><strong>{config.connectionName || `Config-${config.id}`}</strong></td>
                   <td>
                     <span className={`db-type-badge ${config.dbType === 'MYSQL' ? 'mysql' : 'postgres'}`}>
                       {config.dbType}
@@ -59,10 +61,14 @@ export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModa
                   <td>{config.dbUser}</td>
                   <td>
                     <span className="tables-tag">
-                      {config.tables || 'Tüm Tablolar'}
+                      {config.tableIncludeList || config.tables || 'Tüm Tablolar'}
                     </span>
                   </td>
-                  <td>{config.pollIntervalMs || 1000} ms</td>
+                  <td>
+                    <code style={{ fontSize: '0.775rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>
+                      {config.additionalPropertiesJson || '{}'}
+                    </code>
+                  </td>
                   <td>
                     <button
                       type="button"
