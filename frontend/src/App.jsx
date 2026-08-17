@@ -5,6 +5,7 @@ import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import ConfigsPage from './pages/ConfigsPage';
 import EventsPage from './pages/EventsPage';
+import ConfigDetailPage from './pages/ConfigDetailPage';
 import ConfigModal from './components/ConfigModal';
 import { LogIn, ShieldAlert } from 'lucide-react';
 import './styles/cms-theme.css';
@@ -30,6 +31,7 @@ export default function App({ keycloak, initialAuthenticated }) {
   const [events, setEvents] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedConfig, setSelectedConfig] = useState(null);
+  const [selectedConfigForDetail, setSelectedConfigForDetail] = useState(null);
 
   // Fetch CDC Database Configs
   const fetchConfigs = async () => {
@@ -53,8 +55,8 @@ export default function App({ keycloak, initialAuthenticated }) {
 
   useEffect(() => {
     if (authenticated) {
-      if (activeTab === 'configs') fetchConfigs();
-      if (activeTab === 'events') fetchEvents();
+      fetchConfigs();
+      fetchEvents();
     }
   }, [authenticated, activeTab]);
 
@@ -89,6 +91,11 @@ export default function App({ keycloak, initialAuthenticated }) {
   const handleOpenEditModal = (config) => {
     setSelectedConfig(config);
     setModalOpen(true);
+  };
+
+  const handleViewEvents = (config) => {
+    setSelectedConfigForDetail(config);
+    setActiveTab('config-detail');
   };
 
   const handleSaveConfig = async (formData) => {
@@ -155,6 +162,7 @@ export default function App({ keycloak, initialAuthenticated }) {
     if (activeTab === 'dashboard') return '📊 Anasayfa';
     if (activeTab === 'configs') return '⚙️ Veritabanı CDC Konfigürasyonları';
     if (activeTab === 'events') return '📜 CDC Değişiklik Günlüğü (Change Events)';
+    if (activeTab === 'config-detail') return `🔍 ${selectedConfigForDetail?.connectionName || 'Konfigürasyon'} Değişiklik Detayı`;
     return 'CMS Panel';
   };
 
@@ -162,7 +170,7 @@ export default function App({ keycloak, initialAuthenticated }) {
     <div className="cms-layout">
       {/* Left Sidebar Navigation */}
       <Sidebar
-        activeTab={activeTab}
+        activeTab={activeTab === 'config-detail' ? 'configs' : activeTab}
         setActiveTab={setActiveTab}
         username={username}
         onLogout={handleLogout}
@@ -173,7 +181,7 @@ export default function App({ keycloak, initialAuthenticated }) {
         <Header title={getPageTitle()} />
 
         <div className="cms-content">
-          {activeTab === 'dashboard' && <HomePage />}
+          {activeTab === 'dashboard' && <HomePage configs={configs} events={events} />}
 
           {activeTab === 'configs' && (
             <ConfigsPage
@@ -182,6 +190,7 @@ export default function App({ keycloak, initialAuthenticated }) {
               onOpenEditModal={handleOpenEditModal}
               onToggleActive={handleToggleActive}
               onDeleteConfig={handleDeleteConfig}
+              onViewEvents={handleViewEvents}
             />
           )}
 
@@ -191,10 +200,17 @@ export default function App({ keycloak, initialAuthenticated }) {
               onRefresh={fetchEvents}
             />
           )}
+
+          {activeTab === 'config-detail' && (
+            <ConfigDetailPage
+              config={selectedConfigForDetail}
+              onBack={() => setActiveTab('configs')}
+            />
+          )}
         </div>
       </main>
 
-      {/* Modal Dialog for Create / Update */}
+      {/* Modal Dialog for Create / Update Config */}
       <ConfigModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}

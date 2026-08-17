@@ -37,4 +37,9 @@ public class CdcController {
     public ResponseEntity<List<CdcChangeEventResponseDto>> getEvents() {
         return ResponseEntity.ok(cdcService.getCapturedEvents());
     }
+
+    @GetMapping("/events/config/{configId}")
+    public ResponseEntity<List<CdcChangeEventResponseDto>> getEventsByConfigId(@PathVariable Long configId) {
+        return ResponseEntity.ok(cdcService.getCapturedEventsByConfigId(configId));
+    }
 }

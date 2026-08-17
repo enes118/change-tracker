@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface CdcChangeEventRepository extends JpaRepository<CdcChangeEvent, Long> {
     List<CdcChangeEvent> findTop100ByOrderByIdDesc();
+    List<CdcChangeEvent> findTop100ByCdcConfigIdOrderByIdDesc(Long cdcConfigId);
 }

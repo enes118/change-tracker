@@ -120,8 +120,10 @@ export default function EventsPage({ events, onRefresh }) {
                       type="button"
                       className="btn-action edit"
                       onClick={() => setSelectedEvent(ev)}
+                      title="Detayı İncele"
+                      style={{ padding: '0.4rem 0.55rem' }}
                     >
-                      <Eye size={14} /> Detayı İncele
+                      <Eye size={16} />
                     </button>
                   </td>
                 </tr>

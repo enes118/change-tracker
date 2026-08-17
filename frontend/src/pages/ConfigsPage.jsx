@@ -1,7 +1,7 @@
 import React from 'react';
-import { Plus, Edit2, Trash2, Database, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Database, CheckCircle, XCircle, History } from 'lucide-react';
 
-export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModal, onToggleActive, onDeleteConfig }) {
+export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModal, onToggleActive, onDeleteConfig, onViewEvents }) {
   return (
     <div className="cms-card">
       <div className="cms-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -74,10 +74,10 @@ export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModa
                       type="button"
                       className={`status-badge-btn ${config.active ? 'active' : 'inactive'}`}
                       onClick={() => onToggleActive(config.id, !config.active)}
-                      title="Durumu Değiştirmek İçin Tıklayın"
+                      title={config.active ? "Aktif (Pasifleştirmek için tıklayın)" : "Pasif (Aktifleştirmek için tıklayın)"}
+                      style={{ padding: '0.4rem 0.55rem' }}
                     >
-                      {config.active ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                      {config.active ? 'Aktif' : 'Pasif'}
+                      {config.active ? <CheckCircle size={16} /> : <XCircle size={16} />}
                     </button>
                   </td>
                   <td style={{ textAlign: 'right' }}>
@@ -85,18 +85,29 @@ export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModa
                       <button
                         type="button"
                         className="btn-action edit"
+                        onClick={() => onViewEvents(config)}
+                        title="Bu Konfigürasyona Ait Değişiklikleri Gör"
+                        style={{ padding: '0.4rem 0.55rem', backgroundColor: '#eff6ff', color: '#2563eb', borderColor: '#bfdbfe' }}
+                      >
+                        <History size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-action edit"
                         onClick={() => onOpenEditModal(config)}
                         title="Düzenle"
+                        style={{ padding: '0.4rem 0.55rem' }}
                       >
-                        <Edit2 size={15} /> Düzenle
+                        <Edit2 size={16} />
                       </button>
                       <button
                         type="button"
                         className="btn-action delete"
                         onClick={() => onDeleteConfig(config.id)}
                         title="Sil"
+                        style={{ padding: '0.4rem 0.55rem' }}
                       >
-                        <Trash2 size={15} /> Sil
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>

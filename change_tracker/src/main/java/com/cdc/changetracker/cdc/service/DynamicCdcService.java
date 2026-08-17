@@ -99,4 +99,10 @@ public class DynamicCdcService {
                 .map(cdcMapper::toDto)
                 .toList();
     }
+
+    public List<CdcChangeEventResponseDto> getCapturedEventsByConfigId(Long configId) {
+        return eventRepository.findTop100ByCdcConfigIdOrderByIdDesc(configId).stream()
+                .map(cdcMapper::toDto)
+                .toList();
+    }
 }
