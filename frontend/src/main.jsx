@@ -6,13 +6,11 @@ import './styles/cms-theme.css';
 
 console.log('🔒 Keycloak Resmi OIDC Başlatıcısı (main.jsx)...');
 
-// Strictly check for login authorization code parameter (excluding logout state parameters)
 const hasAuthCodeInUrl = typeof window !== 'undefined' && (
   window.location.search.includes('code=') ||
   window.location.hash.includes('code=')
 );
 
-// Official Keycloak Recommendation: Initialize Keycloak BEFORE mounting React root
 keycloak.init({
   onLoad: 'check-sso',
   checkLoginIframe: false,

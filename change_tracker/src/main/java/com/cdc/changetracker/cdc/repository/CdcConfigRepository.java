@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface CdcConfigRepository extends JpaRepository<CdcConfig, Long> {
     Optional<CdcConfig> findFirstByActiveTrue();
     List<CdcConfig> findAllByActiveTrue();
+    List<CdcConfig> findTop3ByActiveTrueOrderByUpdatedDateDesc();
+    long countByActiveTrue();
 }

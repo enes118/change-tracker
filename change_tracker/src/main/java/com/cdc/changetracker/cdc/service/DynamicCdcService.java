@@ -14,6 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.cdc.changetracker.cdc.dto.CdcOperationStatsDto;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,14 +98,54 @@ public class DynamicCdcService {
     }
 
     public List<CdcChangeEventResponseDto> getCapturedEvents() {
-        return eventRepository.findTop100ByOrderByIdDesc().stream()
+        return eventRepository.findAllByOrderByIdDesc().stream()
                 .map(cdcMapper::toDto)
                 .toList();
     }
 
     public List<CdcChangeEventResponseDto> getCapturedEventsByConfigId(Long configId) {
-        return eventRepository.findTop100ByCdcConfigIdOrderByIdDesc(configId).stream()
+        return eventRepository.findByCdcConfigIdOrderByIdDesc(configId).stream()
                 .map(cdcMapper::toDto)
                 .toList();
+    }
+
+    public List<CdcChangeEventResponseDto> getRecentEvents() {
+        return eventRepository.findTop5ByOrderByIdDesc().stream()
+                .map(cdcMapper::toDto)
+                .toList();
+    }
+
+    public CdcOperationStatsDto getDailyOperationStats() {
+        LocalDateTime startOfDay = LocalDateTime.now().with(LocalTime.MIN);
+        return calculateStatsSince(startOfDay);
+    }
+
+    public CdcOperationStatsDto getMonthlyOperationStats() {
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).with(LocalTime.MIN);
+        return calculateStatsSince(startOfMonth);
+    }
+
+    private CdcOperationStatsDto calculateStatsSince(LocalDateTime since) {
+        List<Object[]> results = eventRepository.countEventsByEventTypeSince(since);
+        long insertCount = 0;
+        long updateCount = 0;
+        long deleteCount = 0;
+
+        for (Object[] row : results) {
+            String eventType = (row[0] != null) ? row[0].toString().toUpperCase() : "";
+            long count = (row[1] != null) ? ((Number) row[1]).longValue() : 0L;
+
+            if ("INSERT".equals(eventType)) insertCount = count;
+            else if ("UPDATE".equals(eventType)) updateCount = count;
+            else if ("DELETE".equals(eventType)) deleteCount = count;
+        }
+
+        long totalCount = insertCount + updateCount + deleteCount;
+        return CdcOperationStatsDto.builder()
+                .insertCount(insertCount)
+                .updateCount(updateCount)
+                .deleteCount(deleteCount)
+                .totalCount(totalCount)
+                .build();
     }
 }

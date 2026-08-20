@@ -1,7 +1,23 @@
 import React from 'react';
-import { Plus, Edit2, Trash2, Database, CheckCircle, XCircle, History } from 'lucide-react';
+import { Plus, Edit2, Trash2, Database, CheckCircle, XCircle, History, User, Calendar } from 'lucide-react';
 
 export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModal, onToggleActive, onDeleteConfig, onViewEvents }) {
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '-';
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return String(timestamp);
+    }
+  };
+
   return (
     <div className="cms-card">
       <div className="cms-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -40,8 +56,8 @@ export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModa
                 <th>Sunucu Adresi</th>
                 <th>Veritabanı Adı</th>
                 <th>Kullanıcı</th>
-                <th>İzlenen Tablolar</th>
-                <th>Ekstra Parametreler (JSON)</th>
+                <th>Oluşturan / Güncelleyen</th>
+                <th>Oluşturulma & Güncellenme Tarihi</th>
                 <th>Durum</th>
                 <th style={{ textAlign: 'right' }}>İşlemler</th>
               </tr>
@@ -60,14 +76,28 @@ export default function ConfigsPage({ configs, onOpenCreateModal, onOpenEditModa
                   <td><strong>{config.dbName}</strong></td>
                   <td>{config.dbUser}</td>
                   <td>
-                    <span className="tables-tag">
-                      {config.tableIncludeList || config.tables || 'Tüm Tablolar'}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', fontSize: '0.775rem' }}>
+                      <span style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <User size={12} /> Ekle: {config.createdBy || 'Admin'}
+                      </span>
+                      {config.updatedBy && (
+                        <span style={{ color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <User size={12} /> Düzenle: {config.updatedBy}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td>
-                    <code style={{ fontSize: '0.775rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>
-                      {config.additionalPropertiesJson || '{}'}
-                    </code>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', fontSize: '0.775rem', color: '#64748b' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Calendar size={12} /> Eklenme: {formatDate(config.createdDate)}
+                      </span>
+                      {config.updatedDate && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#94a3b8' }}>
+                          <Calendar size={12} /> Güncelleme: {formatDate(config.updatedDate)}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <button

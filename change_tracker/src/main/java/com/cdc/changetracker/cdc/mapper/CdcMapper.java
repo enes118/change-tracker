@@ -15,6 +15,8 @@ import org.mapstruct.Mapping;
 public interface CdcMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdDate", ignore = true)
+    @Mapping(target = "updatedDate", ignore = true)
     CdcConfig toEntity(CdcConfigRequestDto dto);
 
     @Mapping(target = "additionalProperties", expression = "java(entity.getAdditionalProperties())")

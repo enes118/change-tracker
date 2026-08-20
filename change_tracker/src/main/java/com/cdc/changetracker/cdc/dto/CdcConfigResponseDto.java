@@ -3,6 +3,7 @@ package com.cdc.changetracker.cdc.dto;
 import com.cdc.changetracker.cdc.enums.DbType;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Getter
@@ -23,4 +24,10 @@ public class CdcConfigResponseDto {
     private String additionalPropertiesJson;
     private Map<String, String> additionalProperties;
     private Boolean active;
+
+    // Audit fields for responses
+    private String createdBy;
+    private LocalDateTime createdDate;
+    private String updatedBy;
+    private LocalDateTime updatedDate;
 }

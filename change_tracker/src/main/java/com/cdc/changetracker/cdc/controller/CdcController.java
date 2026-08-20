@@ -1,5 +1,6 @@
 package com.cdc.changetracker.cdc.controller;
 
+import com.cdc.changetracker.cdc.dto.CdcOperationStatsDto;
 import com.cdc.changetracker.cdc.dto.CdcChangeEventResponseDto;
 import com.cdc.changetracker.cdc.service.DynamicCdcService;
 import lombok.RequiredArgsConstructor;
@@ -41,5 +42,20 @@ public class CdcController {
     @GetMapping("/events/config/{configId}")
     public ResponseEntity<List<CdcChangeEventResponseDto>> getEventsByConfigId(@PathVariable Long configId) {
         return ResponseEntity.ok(cdcService.getCapturedEventsByConfigId(configId));
+    }
+
+    @GetMapping("/events/latest-event")
+    public ResponseEntity<List<CdcChangeEventResponseDto>> getRecentEvents() {
+        return ResponseEntity.ok(cdcService.getRecentEvents());
+    }
+
+    @GetMapping("/events/stats/daily")
+    public ResponseEntity<CdcOperationStatsDto> getDailyStats() {
+        return ResponseEntity.ok(cdcService.getDailyOperationStats());
+    }
+
+    @GetMapping("/events/stats/monthly")
+    public ResponseEntity<CdcOperationStatsDto> getMonthlyStats() {
+        return ResponseEntity.ok(cdcService.getMonthlyOperationStats());
     }
 }

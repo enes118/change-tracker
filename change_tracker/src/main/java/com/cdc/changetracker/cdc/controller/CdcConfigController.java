@@ -26,6 +26,16 @@ public class CdcConfigController {
         return ResponseEntity.ok(configService.getAllConfigs());
     }
 
+    @GetMapping("/recent-config")
+    public ResponseEntity<List<CdcConfigResponseDto>> getRecentConfigs() {
+        return ResponseEntity.ok(configService.getRecentConfigs());
+    }
+
+    @GetMapping("/active-count")
+    public ResponseEntity<Long> getActiveConfigCount() {
+        return ResponseEntity.ok(configService.getActiveConfigCount());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<CdcConfigResponseDto> getConfigById(@PathVariable Long id) {
         return ResponseEntity.ok(configService.getConfigById(id));

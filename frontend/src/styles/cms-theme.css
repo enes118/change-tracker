@@ -485,6 +485,7 @@ body {
   justify-content: center;
   z-index: 999;
   padding: 1.5rem;
+  overflow-y: auto;
 }
 
 .modal-container {
@@ -492,6 +493,9 @@ body {
   border-radius: 16px;
   width: 100%;
   max-width: 620px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--border-color);
   overflow: hidden;
@@ -551,6 +555,8 @@ body {
 
 .modal-body {
   padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .form-grid {

@@ -33,7 +33,6 @@ export default function App({ keycloak, initialAuthenticated }) {
   const [selectedConfig, setSelectedConfig] = useState(null);
   const [selectedConfigForDetail, setSelectedConfigForDetail] = useState(null);
 
-  // Fetch CDC Database Configs
   const fetchConfigs = async () => {
     try {
       const response = await api.get('/api/cdc/configs');
@@ -43,7 +42,6 @@ export default function App({ keycloak, initialAuthenticated }) {
     }
   };
 
-  // Fetch CDC Change Events
   const fetchEvents = async () => {
     try {
       const response = await api.get('/api/cdc/events');
@@ -55,8 +53,11 @@ export default function App({ keycloak, initialAuthenticated }) {
 
   useEffect(() => {
     if (authenticated) {
-      fetchConfigs();
-      fetchEvents();
+      if (activeTab === 'configs') {
+        fetchConfigs();
+      } else if (activeTab === 'events') {
+        fetchEvents();
+      }
     }
   }, [authenticated, activeTab]);
 
@@ -82,7 +83,6 @@ export default function App({ keycloak, initialAuthenticated }) {
     }
   };
 
-  // CRUD Handlers for Database Configs
   const handleOpenCreateModal = () => {
     setSelectedConfig(null);
     setModalOpen(true);
@@ -134,7 +134,6 @@ export default function App({ keycloak, initialAuthenticated }) {
     }
   };
 
-  // Unauthenticated Guard: Shows Light Theme Login Prompt Card
   if (!authenticated) {
     return (
       <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '1.5rem' }}>
@@ -168,7 +167,6 @@ export default function App({ keycloak, initialAuthenticated }) {
 
   return (
     <div className="cms-layout">
-      {/* Left Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab === 'config-detail' ? 'configs' : activeTab}
         setActiveTab={setActiveTab}
@@ -176,12 +174,11 @@ export default function App({ keycloak, initialAuthenticated }) {
         onLogout={handleLogout}
       />
 
-      {/* Main Content Area */}
       <main className="cms-main">
         <Header title={getPageTitle()} />
 
         <div className="cms-content">
-          {activeTab === 'dashboard' && <HomePage configs={configs} events={events} />}
+          {activeTab === 'dashboard' && <HomePage configs={configs} />}
 
           {activeTab === 'configs' && (
             <ConfigsPage
@@ -197,6 +194,7 @@ export default function App({ keycloak, initialAuthenticated }) {
           {activeTab === 'events' && (
             <EventsPage
               events={events}
+              configs={configs}
               onRefresh={fetchEvents}
             />
           )}
@@ -210,7 +208,6 @@ export default function App({ keycloak, initialAuthenticated }) {
         </div>
       </main>
 
-      {/* Modal Dialog for Create / Update Config */}
       <ConfigModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}

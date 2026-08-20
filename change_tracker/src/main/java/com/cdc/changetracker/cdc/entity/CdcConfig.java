@@ -5,7 +5,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,6 +46,21 @@ public class CdcConfig {
     private String additionalPropertiesJson;
 
     private Boolean active;
+
+    // AUDIT FIELDS WITH EXPLICIT COLUMN MAPPINGS
+    @Column(name = "created_by")
+    private String createdBy;
+
+    @CreationTimestamp
+    @Column(name = "created_date")
+    private LocalDateTime createdDate;
+
+    @Column(name = "updated_by")
+    private String updatedBy;
+
+    @UpdateTimestamp
+    @Column(name = "updated_date")
+    private LocalDateTime updatedDate;
 
     public Map<String, String> getAdditionalProperties() {
         if (additionalPropertiesJson == null || additionalPropertiesJson.isBlank()) {

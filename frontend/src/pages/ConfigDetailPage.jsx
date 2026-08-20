@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
-import { ArrowLeft, RefreshCw, Eye, History, Database, Search, Filter, Code } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Eye, History, Database, Search, Filter, Code, ChevronLeft, ChevronRight, ChevronDown, Check, X } from 'lucide-react';
 
 export default function ConfigDetailPage({ config, onBack }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('ALL');
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Multi-Select Operation Types State (empty [] = All)
+  const [selectedOperationTypes, setSelectedOperationTypes] = useState([]);
+  const [isOpDropdownOpen, setIsOpDropdownOpen] = useState(false);
+  const opDropdownRef = useRef(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(15);
 
   const fetchEvents = async () => {
     if (!config || !config.id) return;
@@ -28,6 +36,17 @@ export default function ConfigDetailPage({ config, onBack }) {
     }
   }, [config]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (opDropdownRef.current && !opDropdownRef.current.contains(event.target)) {
+        setIsOpDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   if (!config) {
     return (
       <div className="cms-card" style={{ padding: '2rem', textAlign: 'center' }}>
@@ -39,15 +58,25 @@ export default function ConfigDetailPage({ config, onBack }) {
     );
   }
 
-  const filteredEvents = events.filter((ev) => {
-    const matchesSearch =
-      (ev.tableName && ev.tableName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (ev.id && String(ev.id).includes(searchTerm));
+  const toggleOperationTypeSelection = (type) => {
+    setCurrentPage(1);
+    setSelectedOperationTypes((prev) =>
+      prev.includes(type) ? prev.filter((item) => item !== type) : [...prev, type]
+    );
+  };
 
-    const matchesType = filterType === 'ALL' || (ev.eventType && ev.eventType.toUpperCase() === filterType);
+  const filteredEvents = events.filter((ev) => {
+    const matchesSearch = !searchTerm || (ev.tableName && ev.tableName.toLowerCase().includes(searchTerm.toLowerCase()));
+    const evType = ev.eventType ? ev.eventType.toUpperCase() : '';
+    const matchesType = selectedOperationTypes.length === 0 || selectedOperationTypes.includes(evType);
 
     return matchesSearch && matchesType;
   });
+
+  const totalPages = Math.ceil(filteredEvents.length / itemsPerPage) || 1;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredEvents.slice(indexOfFirstItem, indexOfLastItem);
 
   const getEventTypeBadge = (type) => {
     const upperType = type ? type.toUpperCase() : 'UNKNOWN';
@@ -74,9 +103,14 @@ export default function ConfigDetailPage({ config, onBack }) {
     }
   };
 
+  const getSelectedOpTypeLabel = () => {
+    if (selectedOperationTypes.length === 0 || selectedOperationTypes.length === 3) return 'Tüm İşlem Tipleri';
+    return selectedOperationTypes.join(', ');
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Top Header Card with Back Button and Config Details */}
+      {/* Top Header Card */}
       <div className="cms-card" style={{ padding: '1.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -118,15 +152,20 @@ export default function ConfigDetailPage({ config, onBack }) {
           </button>
         </div>
 
-        {/* Config Summary Info Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
           <div>
             <span style={{ fontSize: '0.775rem', color: '#64748b', fontWeight: '600', display: 'block' }}>İzlenen Tablolar</span>
             <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>{config.tableIncludeList || 'Tüm Tablolar'}</strong>
           </div>
           <div>
-            <span style={{ fontSize: '0.775rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Ekstra Parametreler</span>
-            <code style={{ fontSize: '0.775rem', color: '#64748b' }}>{config.additionalPropertiesJson || '{}'}</code>
+            <span style={{ fontSize: '0.775rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Oluşturan & Tarih</span>
+            <strong style={{ fontSize: '0.825rem', color: '#0284c7', display: 'block' }}>{config.createdBy || 'Admin'}</strong>
+            <span style={{ fontSize: '0.725rem', color: '#94a3b8' }}>{formatDate(config.createdDate)}</span>
+          </div>
+          <div>
+            <span style={{ fontSize: '0.775rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Son Düzenleyen & Tarih</span>
+            <strong style={{ fontSize: '0.825rem', color: '#0f172a', display: 'block' }}>{config.updatedBy || config.createdBy || 'Admin'}</strong>
+            <span style={{ fontSize: '0.725rem', color: '#94a3b8' }}>{formatDate(config.updatedDate || config.createdDate)}</span>
           </div>
           <div>
             <span style={{ fontSize: '0.775rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Toplam Yakalanan Olay</span>
@@ -143,33 +182,138 @@ export default function ConfigDetailPage({ config, onBack }) {
             Bu Konfigürasyona Ait Canlı Değişiklik Olayları
           </h3>
 
-          {/* Search and Filter */}
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ position: 'relative', width: '220px' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
               <input
                 type="text"
                 placeholder="Tablo adı ara..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="form-input"
                 style={{ paddingLeft: '2.25rem', padding: '0.45rem 0.75rem 0.45rem 2.25rem', fontSize: '0.85rem' }}
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Filter size={15} style={{ color: '#64748b' }} />
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+            <div ref={opDropdownRef} style={{ position: 'relative', minWidth: '200px' }}>
+              <div
+                onClick={() => setIsOpDropdownOpen(!isOpDropdownOpen)}
                 className="form-input"
-                style={{ width: 'auto', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify: 'space-between',
+                  cursor: 'pointer',
+                  backgroundColor: '#ffffff',
+                  borderColor: selectedOperationTypes.length > 0 ? '#2563eb' : '#cbd5e1',
+                  userSelect: 'none',
+                  padding: '0.45rem 0.75rem',
+                  fontSize: '0.85rem'
+                }}
               >
-                <option value="ALL">Tümü</option>
-                <option value="INSERT">INSERT</option>
-                <option value="UPDATE">UPDATE</option>
-                <option value="DELETE">DELETE</option>
-              </select>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflow: 'hidden' }}>
+                  <Filter size={15} style={{ color: '#2563eb', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: '600', color: selectedOperationTypes.length > 0 ? '#2563eb' : '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {getSelectedOpTypeLabel()}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  {selectedOperationTypes.length > 0 && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedOperationTypes([]);
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e0f2fe', color: '#0284c7', borderRadius: '50%', width: '18px', height: '18px' }}
+                      title="Temizle"
+                    >
+                      <X size={12} />
+                    </span>
+                  )}
+                  <ChevronDown size={16} style={{ color: '#64748b', flexShrink: 0, transform: isOpDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                </div>
+              </div>
+
+              {isOpDropdownOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    right: 0,
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    zIndex: 50,
+                    padding: '0.5rem',
+                    minWidth: '200px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem'
+                  }}
+                >
+                  <div
+                    onClick={() => {
+                      setSelectedOperationTypes([]);
+                      setCurrentPage(1);
+                    }}
+                    style={{
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '6px',
+                      fontSize: '0.825rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'space-between',
+                      backgroundColor: selectedOperationTypes.length === 0 ? '#eff6ff' : 'transparent',
+                      color: selectedOperationTypes.length === 0 ? '#2563eb' : '#0f172a'
+                    }}
+                  >
+                    <span>Tüm İşlem Tipleri</span>
+                    {selectedOperationTypes.length === 0 && <Check size={15} />}
+                  </div>
+
+                  {[
+                    { type: 'INSERT', label: 'INSERT (Yeni Kayıt)', color: 'insert' },
+                    { type: 'UPDATE', label: 'UPDATE (Güncelleme)', color: 'update' },
+                    { type: 'DELETE', label: 'DELETE (Silme)', color: 'delete' }
+                  ].map((op) => {
+                    const isSelected = selectedOperationTypes.includes(op.type);
+                    return (
+                      <div
+                        key={op.type}
+                        onClick={() => toggleOperationTypeSelection(op.type)}
+                        style={{
+                          padding: '0.45rem 0.65rem',
+                          borderRadius: '6px',
+                          fontSize: '0.825rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justify: 'space-between',
+                          backgroundColor: isSelected ? '#eff6ff' : 'transparent',
+                          color: isSelected ? '#2563eb' : '#0f172a'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <span className={`event-badge ${op.color}`} style={{ fontSize: '0.725rem' }}>{op.type}</span>
+                        </div>
+                        {isSelected && <Check size={14} style={{ color: '#2563eb' }} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -187,44 +331,78 @@ export default function ConfigDetailPage({ config, onBack }) {
             </p>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="cms-table">
-              <thead>
-                <tr>
-                  <th>Olay ID</th>
-                  <th>Tablo Adı</th>
-                  <th>İşlem Tipi</th>
-                  <th>Tarih & Saat</th>
-                  <th style={{ textAlign: 'right' }}>Payload Detayı</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEvents.map((ev) => (
-                  <tr key={ev.id}>
-                    <td><strong>#{ev.id}</strong></td>
-                    <td><strong>{ev.tableName || 'Bilinmeyen Tablo'}</strong></td>
-                    <td>{getEventTypeBadge(ev.eventType)}</td>
-                    <td style={{ fontSize: '0.825rem', color: '#64748b' }}>{formatDate(ev.timestamp || ev.createdAt || ev.eventTime || ev.createdDate)}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        className="btn-action edit"
-                        onClick={() => setSelectedEvent(ev)}
-                        title="Detayı İncele"
-                        style={{ padding: '0.4rem 0.55rem' }}
-                      >
-                        <Eye size={16} />
-                      </button>
-                    </td>
+          <>
+            <div className="table-responsive">
+              <table className="cms-table">
+                <thead>
+                  <tr>
+                    <th>Olay ID</th>
+                    <th>Tablo Adı</th>
+                    <th>İşlem Tipi</th>
+                    <th>Tarih & Saat</th>
+                    <th style={{ textAlign: 'right' }}>Payload Detayı</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {currentItems.map((ev) => (
+                    <tr key={ev.id}>
+                      <td><strong>#{ev.id}</strong></td>
+                      <td><strong>{ev.tableName || 'Bilinmeyen Tablo'}</strong></td>
+                      <td>{getEventTypeBadge(ev.eventType)}</td>
+                      <td style={{ fontSize: '0.825rem', color: '#64748b' }}>{formatDate(ev.timestamp || ev.createdAt || ev.eventTime || ev.createdDate)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          type="button"
+                          className="btn-action edit"
+                          onClick={() => setSelectedEvent(ev)}
+                          title="Detayı İncele"
+                          style={{ padding: '0.4rem 0.55rem' }}
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                Toplam <strong>{filteredEvents.length}</strong> olaydan <strong>{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredEvents.length)}</strong> arası gösteriliyor
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.825rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+                >
+                  <ChevronLeft size={16} /> Önceki
+                </button>
+
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.5rem', color: '#0f172a' }}>
+                  Sayfa {currentPage} / {totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.825rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+                >
+                  Sonraki <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
-      {/* JSON Payload Viewer Modal */}
+      {/* Payload Modal */}
       {selectedEvent && (
         <div className="modal-overlay">
           <div className="modal-container" style={{ maxWidth: '680px' }}>

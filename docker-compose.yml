@@ -12,6 +12,7 @@ services:
 
   mysql-db:
     image: mysql:8.0
+    command: --server-id=1 --log-bin=mysql-bin --binlog-format=ROW --binlog-row-image=FULL
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: cdc_test

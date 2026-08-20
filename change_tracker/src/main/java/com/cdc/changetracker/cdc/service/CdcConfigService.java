@@ -7,6 +7,8 @@ import com.cdc.changetracker.cdc.mapper.CdcMapper;
 import com.cdc.changetracker.cdc.repository.CdcConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,11 +23,30 @@ public class CdcConfigService {
     private final CdcMapper cdcMapper;
     private final DynamicCdcService dynamicCdcService;
 
+    /**
+     * Oturum açmış olan kullanıcının kullanıcı adını (Keycloak / Spring Security JWT) güvenli şekilde çeker.
+     */
+    private String getCurrentAuthenticatedUser() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                return auth.getName();
+            }
+        } catch (Exception ignored) {}
+        return "Admin";
+    }
+
     public CdcConfigResponseDto createConfig(CdcConfigRequestDto requestDto) {
         CdcConfig config = cdcMapper.toEntity(requestDto);
         if (config.getActive() == null) {
             config.setActive(true);
         }
+
+        // Oturum açan gerçek kullanıcıyı Token'dan otomatik çek ve ata
+        String username = getCurrentAuthenticatedUser();
+        config.setCreatedBy(username);
+        config.setUpdatedBy(username);
+
         CdcConfig saved = configRepository.save(config);
 
         if (Boolean.TRUE.equals(saved.getActive())) {
@@ -43,6 +64,16 @@ public class CdcConfigService {
         return configRepository.findAll().stream()
                 .map(cdcMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    public List<CdcConfigResponseDto> getRecentConfigs() {
+        return configRepository.findTop3ByActiveTrueOrderByUpdatedDateDesc().stream()
+                .map(cdcMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    public long getActiveConfigCount() {
+        return configRepository.countByActiveTrue();
     }
 
     public CdcConfigResponseDto getConfigById(Long id) {
@@ -67,6 +98,10 @@ public class CdcConfigService {
         if (requestDto.getActive() != null) {
             existing.setActive(requestDto.getActive());
         }
+
+        // Oturum açan gerçek kullanıcıyı Token'dan otomatik çek ve ata
+        String username = getCurrentAuthenticatedUser();
+        existing.setUpdatedBy(username);
 
         CdcConfig updated = configRepository.save(existing);
 
@@ -97,6 +132,11 @@ public class CdcConfigService {
     public CdcConfigResponseDto toggleConfigStatus(Long id, boolean active) {
         CdcConfig existing = findConfigEntityById(id);
         existing.setActive(active);
+
+        // Oturum açan gerçek kullanıcıyı Token'dan otomatik çek ve ata
+        String username = getCurrentAuthenticatedUser();
+        existing.setUpdatedBy(username);
+
         CdcConfig updated = configRepository.save(existing);
 
         try {

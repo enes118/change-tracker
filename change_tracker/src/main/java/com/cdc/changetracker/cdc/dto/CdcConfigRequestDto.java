@@ -20,4 +20,8 @@ public class CdcConfigRequestDto {
     private String tableIncludeList;
     private String additionalPropertiesJson;
     private Boolean active;
+
+    // Audit fields for requests
+    private String createdBy;
+    private String updatedBy;
 }
