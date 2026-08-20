@@ -12,7 +12,7 @@ const hasAuthCodeInUrl = typeof window !== 'undefined' && (
 );
 
 keycloak.init({
-  onLoad: 'check-sso',
+  onLoad: 'login-required',
   checkLoginIframe: false,
   pkceMethod: 'S256'
 }).then(authenticated => {

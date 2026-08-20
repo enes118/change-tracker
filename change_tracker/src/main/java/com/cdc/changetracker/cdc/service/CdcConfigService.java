@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -24,13 +25,22 @@ public class CdcConfigService {
     private final DynamicCdcService dynamicCdcService;
 
     /**
-     * Oturum açmış olan kullanıcının kullanıcı adını (Keycloak / Spring Security JWT) güvenli şekilde çeker.
+     * Oturum açmış olan kullanıcının kullanıcı adını (Keycloak / Spring Security JWT) preferred_username claim'i üzerinden çeker.
      */
     private String getCurrentAuthenticatedUser() {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-                return auth.getName();
+                if (auth.getPrincipal() instanceof Jwt jwt) {
+                    String username = jwt.getClaimAsString("preferred_username");
+                    if (username != null && !username.isBlank()) {
+                        return username;
+                    }
+                }
+                String name = auth.getName();
+                if (name != null && !name.isBlank()) {
+                    return name;
+                }
             }
         } catch (Exception ignored) {}
         return "Admin";
