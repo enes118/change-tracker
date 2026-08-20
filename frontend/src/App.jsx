@@ -7,7 +7,6 @@ import ConfigsPage from './pages/ConfigsPage';
 import EventsPage from './pages/EventsPage';
 import ConfigDetailPage from './pages/ConfigDetailPage';
 import ConfigModal from './components/ConfigModal';
-import { LogIn, ShieldAlert } from 'lucide-react';
 import './styles/cms-theme.css';
 
 export default function App({ keycloak, initialAuthenticated }) {
@@ -60,17 +59,6 @@ export default function App({ keycloak, initialAuthenticated }) {
       }
     }
   }, [authenticated, activeTab]);
-
-  const handleLogin = (e) => {
-    if (e) e.preventDefault();
-    console.log('🔑 Keycloak Şifre Ekranına Yönlendiriliyor...');
-    sessionStorage.removeItem('cms_explicit_logout');
-    if (keycloak) {
-      keycloak.login({
-        prompt: 'login'
-      });
-    }
-  };
 
   const handleLogout = () => {
     console.log('🚪 Keycloak Oturumu Kapatılıyor...');
@@ -133,29 +121,6 @@ export default function App({ keycloak, initialAuthenticated }) {
       alert('Hata: Durum değiştirilemedi.');
     }
   };
-
-  if (!authenticated) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '1.5rem' }}>
-        <div className="auth-card" style={{ maxWidth: '440px' }}>
-          <div className="auth-icon-wrapper">
-            <ShieldAlert size={30} />
-          </div>
-          <h1 className="auth-title">Oturum Kapalı</h1>
-          <p className="auth-subtitle">Change Tracker CMS Paneline erişmek için Keycloak ile giriş yapmanız gerekmektedir.</p>
-
-          <div className="badge-group">
-            <span className="badge">Keycloak OIDC</span>
-            <span className="badge">Açık Tema CMS</span>
-          </div>
-
-          <button type="button" className="btn-primary" onClick={handleLogin}>
-            <LogIn size={18} /> Keycloak İle Giriş Yap
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const getPageTitle = () => {
     if (activeTab === 'dashboard') return '📊 Anasayfa';
