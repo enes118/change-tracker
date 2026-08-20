@@ -9,10 +9,13 @@ const api = axios.create({
 api.interceptors.request.use(async (config) => {
   if (keycloak && keycloak.authenticated && keycloak.token) {
     try {
-      await keycloak.updateToken(30);
+      await keycloak.updateToken(5);
       config.headers.Authorization = `Bearer ${keycloak.token}`;
     } catch (e) {
       console.warn('Token update warning:', e);
+      if (keycloak.token) {
+        config.headers.Authorization = `Bearer ${keycloak.token}`;
+      }
     }
   }
   return config;

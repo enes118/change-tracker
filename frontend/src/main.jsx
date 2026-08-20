@@ -4,33 +4,30 @@ import App from './App.jsx';
 import keycloak from './services/keycloak.js';
 import './styles/cms-theme.css';
 
-console.log('🔒 Keycloak Resmi OIDC Başlatıcısı (main.jsx)...');
+console.log('🔒 Keycloak Başlatıcısı (main.jsx)...');
 
-const hasAuthCodeInUrl = typeof window !== 'undefined' && (
-  window.location.search.includes('code=') ||
-  window.location.hash.includes('code=')
-);
+const root = ReactDOM.createRoot(document.getElementById('root'));
 
 keycloak.init({
   onLoad: 'login-required',
   checkLoginIframe: false,
-  pkceMethod: 'S256'
+  useNonce: false,
+  enableLogging: true
 }).then(authenticated => {
-  const isUserAuthenticated = (authenticated || keycloak.authenticated) && !sessionStorage.getItem('cms_explicit_logout');
-  console.log(`✅ Keycloak Init Tamamlandı. Oturum: ${isUserAuthenticated ? 'Aktif' : 'Kapalı'}`);
-
-  ReactDOM.createRoot(document.getElementById('root')).render(
+  console.log(`✅ Keycloak Init Tamamlandı. authenticated: ${authenticated}`);
+  if (authenticated) {
+    sessionStorage.removeItem('cms_explicit_logout');
+  }
+  root.render(
     <React.StrictMode>
-      <App keycloak={keycloak} initialAuthenticated={isUserAuthenticated} />
+      <App keycloak={keycloak} initialAuthenticated={authenticated} />
     </React.StrictMode>
   );
 }).catch(err => {
-  console.warn('⚠️ Keycloak Init Bilgisi:', err);
-  const isUserAuthenticated = hasAuthCodeInUrl && !sessionStorage.getItem('cms_explicit_logout');
-
-  ReactDOM.createRoot(document.getElementById('root')).render(
+  console.warn('⚠️ Keycloak Init Hatası:', err);
+  root.render(
     <React.StrictMode>
-      <App keycloak={keycloak} initialAuthenticated={isUserAuthenticated} />
+      <App keycloak={keycloak} initialAuthenticated={keycloak.authenticated || false} />
     </React.StrictMode>
   );
 });
